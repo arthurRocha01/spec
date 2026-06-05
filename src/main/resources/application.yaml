@@ -1,0 +1,7 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - com.spec.api.SerializationKt.configureSerialization
+      - com.spec.api.RoutingKt.configureRouting
