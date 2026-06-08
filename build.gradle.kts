@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.client.logging)
+    implementation(libs.playwright)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
