@@ -11,7 +11,6 @@ import com.spec.infrastructure.persistence.ProductRepository
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.HttpClient
 import io.ktor.server.application.Application
-import java.io.File
 
 fun Application.module() {
     DatabaseFactory.init()
