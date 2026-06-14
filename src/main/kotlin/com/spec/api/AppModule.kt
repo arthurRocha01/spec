@@ -8,14 +8,17 @@ import com.spec.infrastructure.http.MercadoLivreClient
 import com.spec.infrastructure.http.Scraper
 import com.spec.infrastructure.persistence.DatabaseFactory
 import com.spec.infrastructure.persistence.ProductRepository
+import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.HttpClient
 import io.ktor.server.application.Application
+import java.io.File
 
 fun Application.module() {
     DatabaseFactory.init()
 
     val httpClient = HttpClient()
-    val apiKey = System.getenv("DEEPSEEK_API_KEY") ?: throw RuntimeException("DEEPSEEK_API_KEY not set")
+    val dotenv = dotenv()
+    val apiKey = dotenv["DEEPSEEK_API_KEY"] ?: throw RuntimeException("DEEPSEEK_API_KEY not set")
     val llmClient = LlmHttpClient(httpClient, apiKey)
     val scraper = Scraper(Playwright.create())
     val mlClient = MercadoLivreClient(httpClient)
