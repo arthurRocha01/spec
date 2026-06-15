@@ -1,55 +1,77 @@
 package com.spec.infrastructure.http
 
-import com.spec.infrastructure.proxy.ProxyConfig
-import com.spec.infrastructure.proxy.ProxyManager
-import com.spec.infrastructure.proxy.ProxyType
+import com.spec.domain.product.Product
+import com.spec.domain.product.SearchResult
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.ProxyBuilder
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.Url
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 class MercadoLivreClient(
     private val httpClient: HttpClient,
-    private val proxyManager: ProxyManager? = null
+    private val clientId: String,
+    private val clientSecret: String,
 ) {
-    suspend fun search(query: String): String {
-        val url = "https://lista.mercadolivre.com.br/${query.replace(" ", "+")}"
-        return fetch(url)
-    }
+    private val parser = MercadoLivreParser()
+    private val json = Json { ignoreUnknownKeys = true }
+    private val scope = CoroutineScope(Dispatchers.Default)
 
-    suspend fun fetchPage(url: String): String {
-        return fetch(url)
-    }
+    private var accessToken: String? = null
 
-    private suspend fun fetch(url: String): String {
-        while (true) {
-            val proxyConfig = proxyManager?.getProxy()
-            val client = if (proxyConfig != null) {
-                HttpClient {
-                    engine {
-                        val ktorProxy = when (proxyConfig.type) {
-                            ProxyType.HTTP -> ProxyBuilder.http(Url("http://${proxyConfig.host}:${proxyConfig.port}"))
-                            ProxyType.SOCKS5 -> ProxyBuilder.socks(proxyConfig.host, proxyConfig.port)
-                        }
-
-                        proxy = ktorProxy
-                    }
-
-                }
-            } else {
-                httpClient
-            }
-
-            val response = client.get(url)
-
-            if (response.status.value == 429 || response.status.value == 503) {
-                proxyManager?.reportBlock()
-                continue
-            }
-
-            proxyManager?.reportSuccess()
-            return response.bodyAsText()
+    init {
+        scope.launch {
+            refreshToken()
+            startAutoRefresh()
         }
+    }
+
+    private suspend fun refreshToken() {
+        val response = httpClient.post("https://api.mercadolibre.com/oauth/token") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("grant_type=client_credentials&client_id=$clientId&client_secret=$clientSecret")
+        }
+        val body = response.bodyAsText()
+        val tokenResponse = json.decodeFromString<MlTokenResponse>(body)
+        accessToken = tokenResponse.accessToken
+    }
+
+    private suspend fun startAutoRefresh() {
+        while (true) {
+            delay(5 * 60 * 60 * 1000L) // 5 horas
+            refreshToken()
+        }
+    }
+
+    suspend fun search(query: String): List<SearchResult> {
+        val token = accessToken ?: throw IllegalStateException("Token not initialized")
+        val response = httpClient.get("https://api.mercadolibre.com/products/search") {
+            header("Authorization", "Bearer $token")
+            url {
+                parameters.append("status", "active")
+                parameters.append("site_id", "MLB")
+                parameters.append("q", query)
+                parameters.append("limit", "10")
+            }
+        }
+        val body = response.bodyAsText()
+        return parser.parseSearchResults(body)
+    }
+
+    suspend fun getProduct(productId: String): Product {
+        val token = accessToken ?: throw IllegalStateException("Token not initialized")
+        val response = httpClient.get("https://api.mercadolibre.com/products/$productId") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        return parser.parseProduct(body)
     }
 }

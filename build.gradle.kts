@@ -32,6 +32,7 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.playwright)
     implementation(libs.dotenv)
+    implementation("io.ktor:ktor-server-content-negotiation:3.5.0")
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

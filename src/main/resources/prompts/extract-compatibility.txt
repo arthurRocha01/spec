@@ -1,0 +1,22 @@
+You are a motorcycle parts specialist. Analyze the product description below and extract all vehicle compatibility information.
+
+Return ONLY a valid JSON array of objects with the following structure:
+- model: string (the motorcycle model, e.g. "Honda CG Titan 125")
+- yearRange: string or null (the year range, e.g. "2000-2012" or null if not specified)
+
+Examples:
+Input: "Pastilha de freio compatível com Honda CG Titan 125 2000-2012, Honda Bros 150 2007-2012 e Yamaha YBR 125 2005-2012"
+Output: [{"model": "Honda CG Titan 125", "yearRange": "2000-2012"}, {"model": "Honda Bros 150", "yearRange": "2007-2012"}, {"model": "Yamaha YBR 125", "yearRange": "2005-2012"}]
+
+Input: "Freio a disco para motos Honda"
+Output: [{"model": "Honda", "yearRange": null}]
+
+Input: "Peça de reposição universal"
+Output: []
+
+Rules:
+- Extract ONLY compatibility information. Ignore everything else.
+- If the text mentions a specific motorcycle model, include it.
+- If a year range is mentioned, include it. Otherwise, use null.
+- If no compatibility information is found, return an empty array [].
+- Return ONLY the JSON array. No markdown, no explanation, no code blocks.

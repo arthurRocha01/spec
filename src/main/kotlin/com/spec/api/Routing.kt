@@ -29,14 +29,14 @@ fun Application.configureRouting(
         }
 
         get("/product") {
-            val url = call.request.queryParameters["url"]
+            val productId = call.request.queryParameters["id"]
 
-            if (url.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ad URL"))
+            if (productId.isNullOrBlank()) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Parameter 'id' is required"))
                 return@get
             }
 
-            val product = extractUseCase.execute(url)
+            val product = extractUseCase.execute(productId)
             call.respond(product)
         }
     }

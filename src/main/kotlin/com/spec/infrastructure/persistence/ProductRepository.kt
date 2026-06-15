@@ -6,12 +6,16 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.time.Clock
 
 class ProductRepository {
-    fun findByUrl(url: String): Product? {
-        val row = ProductTable.selectAll().where { ProductTable.url eq url }
-            .singleOrNull() ?: return null
+    private fun <T> query(block: () -> T): T =
+        transaction { block() }
+
+    fun findBySourceUrl(sourceUrl: String): Product? = query {
+        val row = ProductTable.selectAll().where { ProductTable.url eq sourceUrl }
+            .singleOrNull() ?: return@query null
 
         val id = row[ProductTable.id]
         val specs = ProductSpecTable.selectAll().where { ProductSpecTable.productId eq id }
@@ -21,7 +25,7 @@ class ProductRepository {
         val images = ProductImageTable.selectAll().where { ProductImageTable.productId eq id }
             .map { ProductImage(it[ProductImageTable.url], it[ProductImageTable.imageOrder]) }
 
-        return Product(
+        Product(
             name = row[ProductTable.name],
             specifications = specs,
             compatibility = compatibilities,
@@ -30,7 +34,7 @@ class ProductRepository {
         )
     }
 
-    fun save(product: Product): Int {
+    fun save(product: Product): Int = query {
         val id = ProductTable.insertAndGetId {
             it[url] = product.sourceUrl
             it[name] = product.name
@@ -65,10 +69,10 @@ class ProductRepository {
             }
         }
 
-        return id
+        id
     }
 
-    fun delete(id: Int) {
+    fun delete(id: Int) = query {
         ProductImageTable.deleteWhere { ProductImageTable.productId eq id }
         ProductCompatibilityTable.deleteWhere { ProductCompatibilityTable.productId eq id }
         ProductSpecTable.deleteWhere { ProductSpecTable.productId eq id }

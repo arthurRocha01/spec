@@ -1,5 +1,8 @@
 package com.spec.domain.product
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Specification(
     val key: String,
     val value: String
