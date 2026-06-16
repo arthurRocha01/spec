@@ -14,4 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "spec-backend"
+rootProject.name = "spec"
+
+include(":backend")
+include(":desktop")
